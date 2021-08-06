@@ -25,10 +25,39 @@ const createUser = (req, res) => {
     .then((user) => res.status(200).send({ data: user }))
     .catch((err) => {
       if (err.name === 'ValidationError' || err.name === 'CastError') {
-        return res.status(400).send({ message: 'Данные не прошли валидацию.' });
+        res.status(400).send({ message: 'Данные внесены некорректно.' });
       }
-      return res.status(500).send(err);
+      res.status(500).send({ message: 'Запрашиваемый ресурс не найден.' });
     });
 };
 
-module.exports = { getUsers, getUser, createUser };
+const updateUser = (req, res) => {
+  const { name, about } = req.body;
+  // нашли значение у пользователя по id, обновили и отправили обратно
+  User.findByIdAndUpdate(req.user._id, { name, about }, { new: true, upsert: true })
+    .then((user) => res.send(user))
+    .catch((err) => {
+      if (err.name === 'ValidationError' || err.name === 'CastError') {
+        res.status(400).send({ message: 'Данные внесены некорректно.' });
+      }
+      res.status(500).send({ message: 'Запрашиваемый ресурс не найден.' });
+    });
+};
+
+const updateAvatar = (req, res) => {
+  const { avatar } = req.body;
+  // нашли значение у пользователя по id, обновили
+  User.findByIdAndUpdate(req.user._id, { avatar }, { new: true })
+  // вернули
+    .then((user) => res.send(user))
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        res.status(400).send({ message: 'Данные внесены некорректно.' });
+      }
+      res.status(500).send({ message: 'Запрашиваемый ресурс не найден.' });
+    });
+};
+
+module.exports = {
+  getUsers, getUser, createUser, updateUser, updateAvatar,
+};

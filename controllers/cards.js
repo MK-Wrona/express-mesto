@@ -1,7 +1,7 @@
 const Card = require('../models/card');
 
 // получить все карточки
-module.exports.getCards = (req, res) => {
+const getCards = (req, res) => {
   Card.find({})
     .then((card) => {
       if (!card) {
@@ -20,7 +20,7 @@ module.exports.getCards = (req, res) => {
 };
 
 // через post добавили в бд
-module.exports.createCard = (req, res) => {
+const createCard = (req, res) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
     .then((card) => {
@@ -34,7 +34,7 @@ module.exports.createCard = (req, res) => {
     });
 };
 
-module.exports.deleteCard = (req, res) => {
+const deleteCard = (req, res) => {
   Card.findByIdAndRemove(req.params._id)
     .then((card) => {
       if (!card) {
@@ -51,10 +51,11 @@ module.exports.deleteCard = (req, res) => {
     });
 };
 
-module.exports.likeCard = (req, res) => {
+const likeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params._id, {
-      $addToSet: { likes: req.params._id },
+      // добавляем id юзера в качестве лайка
+      $addToSet: { likes: req.user._id },
     }, { new: true },
   )
     .then((card) => {
@@ -72,11 +73,12 @@ module.exports.likeCard = (req, res) => {
     });
 };
 
-module.exports.dislikeCard = (req, res) => {
+const dislikeCard = (req, res) => {
   Card.findByIdAndUpdate(
     req.params._id,
     {
-      $pull: { likes: req.params._id },
+      // убираем id из массива лайков
+      $pull: { likes: req.user._id },
     },
     { new: true },
   )
@@ -93,4 +95,8 @@ module.exports.dislikeCard = (req, res) => {
       }
       res.status(500).send({ message: 'Запрашиваемый ресурс не найден.' });
     });
+};
+
+module.exports = {
+  getCards, createCard, deleteCard, likeCard, dislikeCard,
 };

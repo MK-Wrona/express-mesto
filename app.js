@@ -2,6 +2,7 @@ const express = require('express');
 
 const app = express();
 const mongoose = require('mongoose');
+const helmet = require('helmet');
 // const fs = require("fs")
 const userRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
@@ -15,8 +16,8 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
 });
 
 // middlewares
-app.use(express.static(`${__dirname}/public`));
 app.use(express.json());
+app.use(helmet());
 
 // временная авторизация
 app.use((req, res, next) => {
@@ -30,6 +31,8 @@ app.use((req, res, next) => {
 // sync
 app.use('/', userRouter);
 app.use('/', cardsRouter);
+// запрос по несуществующему руту
+app.use('*', (req, res) => res.status(404).send({ message: 'Запрашиваемый ресурс не найден.' }));
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console

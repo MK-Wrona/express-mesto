@@ -27,10 +27,10 @@ const createCard = (req, res) => {
       res.status(200).send(card);
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Данные внесены некорректно.' });
+      if (err.name === 'ValidationError') {
+        return res.status(400).send({ message: 'Данные не валидны.' });
       }
-      res.status(500).send({ message: 'Запрашиваемый ресурс не найден.' });
+      return res.status(500).send(err);
     });
 };
 

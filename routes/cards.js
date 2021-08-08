@@ -6,10 +6,10 @@ const {
 
 // руты для карточек\лойсов
 
-cardRouter.get('/', getCards);
-cardRouter.post('/', createCard);
-cardRouter.delete('/:_id', deleteCard);
-cardRouter.put('/:_id/likes', likeCard);
-cardRouter.delete('/:_id/likes', dislikeCard);
+cardRouter.get('/cards/', getCards);
+cardRouter.post('/cards', createCard);
+cardRouter.delete('/cards/:_id', deleteCard);
+cardRouter.put('/cards/:_id/likes', likeCard);
+cardRouter.delete('/cards/:_id/likes', dislikeCard);
 
 module.exports = cardRouter;

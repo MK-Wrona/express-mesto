@@ -1,21 +1,23 @@
 const Card = require('../models/card');
 
+const DataError = require('../errors/data_error'); // 400
+const AccessDeniedError = require('../errors/access_denied_error'); // 403
+const NotFoundError = require('../errors/not_found_error'); // 404
+
 // получить все карточки
 const getCards = (req, res) => {
   Card.find({})
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Карточки с данным ID нет в БД.' });
-        return;
+        throw new NotFoundError('Карточка не найдена.');
       }
       // получили и сразу отправили юзеру
       res.send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Данные внесены некорректно.' });
+        throw new DataError('Данные карточки не валидны.');
       }
-      res.status(500).send({ message: 'Запрашиваемый ресурс не найден.' });
     });
 };
 
@@ -28,26 +30,27 @@ const createCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        return res.status(400).send({ message: 'Данные не валидны.' });
+        throw new DataError('Данные карточки не валидны.');
       }
-      return res.status(500).send(err);
     });
 };
 
-const deleteCard = (req, res) => {
+const deleteCard = (req, res, next) => {
+  const userId = req.user._id;
   Card.findByIdAndRemove(req.params._id)
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Пользователя с данным ID нет в БД.' });
+        throw new NotFoundError('Карточка не найдена.');
+      } if (card.owner.toString() !== userId) {
+        next(new AccessDeniedError('Недостаточно прав для удаления карточки.'));// 403
         return;
       }
-      res.send(card);
+      res.send(card);// deleteOne() ??
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Переданы некорректные данные' });
+        throw new NotFoundError('Карточка не найдена.');
       }
-      res.status(500).send({ message: 'Запрашиваемый ресурс не найден' });
     });
 };
 
@@ -60,16 +63,14 @@ const likeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Пользователя с данным ID нет в БД.' });
-        return;
+        throw new NotFoundError('Карточка не найдена.');
       }
       res.send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(400).send({ message: 'Данные внесены некорректно.' });
+        throw new DataError('Данные карточки не валидны.');
       }
-      res.status(500).send({ message: 'Запрашиваемый ресурс не найден.' });
     });
 };
 
@@ -84,16 +85,14 @@ const dislikeCard = (req, res) => {
   )
     .then((card) => {
       if (!card) {
-        res.status(404).send({ message: 'Пользователя с данным ID нет в БД.' });
-        return;
+        throw new NotFoundError('Карточка не найдена.');
       }
       res.send(card);
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(404).send({ message: 'Карточки с данным ID нет в БД.' });
+        throw new NotFoundError('Карточка не найдена.');
       }
-      res.status(500).send({ message: 'Запрашиваемый ресурс не найден.' });
     });
 };
 

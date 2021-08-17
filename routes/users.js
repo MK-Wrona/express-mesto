@@ -1,7 +1,10 @@
 const userRouter = require('express').Router();
 const {
-  getUsers, getUser, createUser, updateAvatar, updateUser, getCurrentUser,
+  getUsers, getUser, createUser, updateAvatar, updateUser, getCurrentUser, // login,
 } = require('../controllers/users');
+// const auth = require('../middlewares/auth');
+
+// userRouter.use(auth); // можно перейти по рутам ниже только в случае успешной авторизации
 
 userRouter.get('/users', getUsers);
 userRouter.get('/users/:_id', getUser);

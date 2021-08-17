@@ -7,8 +7,9 @@ const AuthError = require('../errors/auth_error'); // 401
 const ConflictError = require('../errors/conflict_error'); // 409
 const NotFoundError = require('../errors/not_found_error'); // 404
 
-const { JWT_SECRET } = process.env; // подпись
 const { NODE_ENV } = process.env;
+
+const { JWT_SECRET = 'secret' } = process.env; // подпись
 
 const getUsers = (req, res) => User.find({})
   .then((users) => res.status(200).send(users))
@@ -37,17 +38,11 @@ const createUser = (req, res, next) => {
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
-    .then((user) => res.status(200).send({
-      data:
-  {
-    name: user.name,
-    about: user.name,
-    avatar: user.avatar,
-    email: user.email,
-    _id: user._id,
-  },
-    }))
+    .then((user) => {
+      res.send(user);
+    })
     .catch((err) => {
+      console.log({ message: err });
       if (err.name === 'ValidationError') {
         throw new DataError('Неверный запрос или данные.');
       } else if (err.name === 'MongoError' && err.code === 11000) {
@@ -102,15 +97,15 @@ const login = (req, res, next) => {
   return User.findUserByCredentials(email, password)
     .then((user) => {
       const token = jwt.sign(
-        { _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'some-key', { expiresIn: '7d' },
+        // передаем в пейлоуд айди юзера и подпись
+        { _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'secret', { expiresIn: '7d' },
       );
-
       res.cookie('jwt', token, {
-        maxAge: 3600000 * 24 * 7,
         httpOnly: true,
         sameSite: true,
-      })
-        .send({ token });
+      }).end(res.send({ message: 'Записано.' }));
+      // console.log(res.cookie);
+      // .send({ token });
     })
     .catch(() => next(new AuthError('Возинкла ошибка авторизации.')));
 };

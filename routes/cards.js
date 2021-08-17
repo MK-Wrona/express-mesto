@@ -4,6 +4,10 @@ const {
   getCards, createCard, deleteCard, likeCard, dislikeCard,
 } = require('../controllers/cards');
 
+const auth = require('../middlewares/auth');
+
+cardRouter.use(auth); // можно перейти по рутам ниже только в случае успешной авторизации
+
 // руты для карточек\лойсов
 
 cardRouter.get('/cards/', getCards);

@@ -5,6 +5,7 @@ const app = express();
 const mongoose = require('mongoose');
 const helmet = require('helmet');
 const cookieParser = require('cookie-parser');
+const { celebrate, Joi, errors } = require('celebrate');
 // const fs = require("fs")
 const userRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
@@ -27,8 +28,21 @@ app.use(express.json());
 app.use(helmet());
 app.use(cookieParser());
 
-app.post('/signin', login);
-app.post('/signup', createUser);
+app.post('/signin', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(8),
+  }),
+}), login);
+app.post('/signup', celebrate({
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    password: Joi.string().required().min(8),
+    name: Joi.string().min(2).max(30),
+    about: Joi.string().min(2).max(30),
+    avatar: Joi.string(),
+  }).unknown(true),
+}), createUser);
 
 app.use(auth);
 
@@ -37,6 +51,15 @@ app.use('/', userRouter);
 app.use('/', cardsRouter);
 // запрос по несуществующему руту
 app.use('*', () => { throw new NotFoundError('Запрашиваемый ресурс не найден.'); });
+// централизованная обработка ошибок приложения
+app.use((req, res, err) => {
+  const { statusCode = 500, message } = err;
+  res.statusCode(statusCode).send({
+    message: statusCode === 500 ? 'Упс, похоже на ошибку сервера.' : message,
+  });
+});
+
+app.use(errors());
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console

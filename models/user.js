@@ -23,11 +23,8 @@ const userSchema = new mongoose.Schema({
     required: false,
     default: 'https://pictures.s3.yandex.net/resources/jacques-cousteau_1604399756.png',
     validate: {
-      validator(v) {
-        validator.isURL(v, // чек формат ссылки
-          { require_protocol: true });
-        // вернуть паттерн
-        return /https?\:\/\/(www\.)?\d?\D{1,}#?/.test(v);
+      validator: (link) => {
+        validator.isURL(link, { protocols: ['http', 'https'], require_protocol: true });
       },
     },
   },

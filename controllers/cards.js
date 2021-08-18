@@ -22,7 +22,7 @@ const getCards = (req, res) => {
 };
 
 // через post добавили в бд
-const createCard = (req, res) => {
+const createCard = (req, res, next) => {
   const { name, link } = req.body;
   Card.create({ name, link, owner: req.user._id })
     .then((card) => {
@@ -31,6 +31,8 @@ const createCard = (req, res) => {
     .catch((err) => {
       if (err.name === 'ValidationError') {
         throw new DataError('Данные карточки не валидны.');
+      } else {
+        next(err);
       }
     });
 };
@@ -38,43 +40,47 @@ const createCard = (req, res) => {
 const deleteCard = (req, res, next) => {
   const userId = req.user._id;
   Card.findByIdAndRemove(req.params._id)
+    .orFail(new Error('CastError')) // если карточки нет, сразу перекидываем в блок catch
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Карточка не найдена.');
-      } if (card.owner.toString() !== userId) {
+      if (card.owner.toString() !== userId) {
         next(new AccessDeniedError('Недостаточно прав для удаления карточки.'));// 403
         return;
       }
       res.send(card);// deleteOne() ??
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
+      if (err.message === 'CastError') {
         throw new NotFoundError('Карточка не найдена.');
+      } else {
+        next(err);
       }
     });
 };
 
-const likeCard = (req, res) => {
+const likeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params._id, {
       // добавляем id юзера в качестве лайка
       $addToSet: { likes: req.user._id },
     }, { new: true },
   )
+    .orFail(new Error('NotFound'))
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Карточка не найдена.');
-      }
       res.send(card);
+    })
+    .catch((err) => {
+      if (err.message === 'NotFound') throw new NotFoundError('Данные карточки не валидны.');
     })
     .catch((err) => {
       if (err.name === 'CastError') {
         throw new DataError('Данные карточки не валидны.');
+      } else {
+        next(err);
       }
     });
 };
 
-const dislikeCard = (req, res) => {
+const dislikeCard = (req, res, next) => {
   Card.findByIdAndUpdate(
     req.params._id,
     {
@@ -83,15 +89,18 @@ const dislikeCard = (req, res) => {
     },
     { new: true },
   )
+    .orFail(new Error('NotFound'))
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Карточка не найдена.');
-      }
       res.send(card);
     })
     .catch((err) => {
-      if (err.name === 'CastError') {
-        throw new NotFoundError('Карточка не найдена.');
+      if (err.message === 'NotFound') throw new NotFoundError('Карточка не найдена.');
+    })
+    .catch((err) => {
+      if (err.message === 'CastError') {
+        throw new DataError('Пенредаваемые данныые не валидны.');
+      } else {
+        next(err);
       }
     });
 };

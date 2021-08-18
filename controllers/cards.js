@@ -5,20 +5,13 @@ const AccessDeniedError = require('../errors/access_denied_error'); // 403
 const NotFoundError = require('../errors/not_found_error'); // 404
 
 // получить все карточки
-const getCards = (req, res) => {
+const getCards = (req, res, next) => {
   Card.find({})
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Карточка не найдена.');
-      }
       // получили и сразу отправили юзеру
       res.send(card);
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        throw new DataError('Данные карточки не валидны.');
-      }
-    });
+    .catch(next);
 };
 
 // через post добавили в бд
@@ -38,19 +31,24 @@ const createCard = (req, res, next) => {
 };
 
 const deleteCard = (req, res, next) => {
-  const userId = req.user._id;
-  Card.findByIdAndRemove(req.params._id)
-    .orFail(new Error('CastError')) // если карточки нет, сразу перекидываем в блок catch
+  const { _id } = req.params;
+  Card.findById(_id)
+    .orFail(new Error('CastError'))
     .then((card) => {
-      if (card.owner.toString() !== userId) {
-        next(new AccessDeniedError('Недостаточно прав для удаления карточки.'));// 403
-        return;
+      if (!card) {
+        throw new NotFoundError('Карточка отсутствует в БД.');
+      } else if (JSON.stringify(req.user._id) === JSON.stringify(card.owner)) {
+        Card.findByIdAndRemove(_id)
+          .then((result) => {
+            res.send(result);
+          });
+      } else {
+        throw new AccessDeniedError('Вы не обладаете достаточными правами для удаления карточки.');
       }
-      res.send(card);// deleteOne() ??
     })
     .catch((err) => {
       if (err.message === 'CastError') {
-        throw new NotFoundError('Карточка не найдена.');
+        throw new DataError('Неверные данные.');
       } else {
         next(err);
       }

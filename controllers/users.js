@@ -13,13 +13,7 @@ const { JWT_SECRET = 'secret' } = process.env; // подпись
 
 const getUsers = (req, res, next) => User.find({})
   .then((users) => res.status(200).send(users))
-  .catch((err) => {
-    if (err.name === 'CastError') {
-      throw new DataError('Неверный запрос или данные.');
-    } else {
-      next(err);
-    }
-  });
+  .catch(next);
 
 const getUser = (req, res, next) => User.findById(req.params._id)
   .orFail(new Error('Юзер по заданному ID отсутствует в БД.'))
@@ -70,13 +64,9 @@ const updateUser = (req, res, next) => {
       }
       return res.status(200).send(user);
     })
-    .catch((err) => {
-      if (err.name === 'ValidationError' || err.name === 'CastError') {
-        throw new DataError('Неверный запрос или данные.');
-      } else {
-        next(err);
-      }
-    });
+    .catch(
+      next(new DataError('Неверный запрос или данные.')),
+    );
 };
 
 const updateAvatar = (req, res, next) => {
@@ -92,9 +82,7 @@ const updateAvatar = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        throw new NotFoundError('Данные внесены некорректно.');
-      } else if (err.name === 'CastError') {
-        throw new NotFoundError('Запрашиваемый ресурс не найден.');
+        throw new DataError('Данные внесены некорректно.');
       } else {
         next(err);
       }
@@ -118,7 +106,7 @@ const login = (req, res, next) => {
       // console.log(res.cookie);
       // .send({ token });
     })
-    .catch(() => next(new AuthError('Возинкла ошибка авторизации.')));
+    .catch(() => next(new AuthError('Неверный логин либо пароль')));
 };
 
 const getCurrentUser = (req, res, next) => User.findById(req.user._id)
@@ -130,7 +118,7 @@ const getCurrentUser = (req, res, next) => User.findById(req.user._id)
   })
   .catch((err) => {
     if (err.name === 'CastError') {
-      throw new NotFoundError('Юзер по заданному ID отсутствует в БД.');
+      throw new DataError('Данные внесены некорректно.');
     } else {
       next(err);
     }

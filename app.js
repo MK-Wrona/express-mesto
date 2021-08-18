@@ -21,6 +21,7 @@ mongoose.connect('mongodb://localhost:27017/mestodb', {
   useNewUrlParser: true,
   useCreateIndex: true,
   useFindAndModify: false,
+  useUnifiedTopology: true,
 });
 
 // middlewares
@@ -40,7 +41,7 @@ app.post('/signup', celebrate({
     password: Joi.string().required().min(8),
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),
-    avatar: Joi.string(),
+    avatar: Joi.string().pattern(/https?:\/\/(www\.)?[a-zA-Z\d\-.]{1,}\.[a-z]{1,6}([/a-z0-9\-._~:?#[\]@!$&'()*+,;=]*)/),
   }).unknown(true),
 }), createUser);
 
@@ -51,15 +52,16 @@ app.use('/', userRouter);
 app.use('/', cardsRouter);
 // запрос по несуществующему руту
 app.use('*', () => { throw new NotFoundError('Запрашиваемый ресурс не найден.'); });
-// централизованная обработка ошибок приложения
-app.use((req, res, err) => {
-  const { statusCode = 500, message } = err;
-  res.statusCode(statusCode).send({
-    message: statusCode === 500 ? 'Упс, похоже на ошибку сервера.' : message,
-  });
-});
 
 app.use(errors());
+// централизованная обработка ошибок приложения
+app.use((err, req, res, next) => {
+  const { statusCode = 500, message } = err;
+  res.status(statusCode).send({
+    message: statusCode === 500 ? 'Упс, похоже на ошибку сервера.' : message,
+  });
+  next();
+});
 
 app.listen(PORT, () => {
   // eslint-disable-next-line no-console

@@ -5,10 +5,6 @@ const {
   getCards, createCard, deleteCard, likeCard, dislikeCard,
 } = require('../controllers/cards');
 
-const auth = require('../middlewares/auth');
-
-cardRouter.use(auth); // можно перейти по рутам ниже только в случае успешной авторизации
-
 // руты для карточек\лойсов
 
 cardRouter.get('/cards/', getCards);
@@ -22,17 +18,17 @@ cardRouter.post('/cards', celebrate({
 }), createCard);
 cardRouter.delete('/cards/:_id', celebrate({
   params: Joi.object().keys({
-    _id: Joi.string().alphanum().length(24),
+    _id: Joi.string().length(24).hex(),
   }),
 }), deleteCard);
 cardRouter.put('/cards/:_id/likes', celebrate({
   params: Joi.object().keys({
-    _id: Joi.string().alphanum().length(24),
+    _id: Joi.string().length(24).hex(),
   }),
 }), likeCard);
 cardRouter.delete('/cards/:_id/likes', celebrate({
   params: Joi.object().keys({
-    _id: Joi.string().alphanum().length(24),
+    _id: Joi.string().length(24).hex(),
   }),
 }), dislikeCard);
 

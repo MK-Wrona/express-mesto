@@ -16,19 +16,16 @@ const getUsers = (req, res, next) => User.find({})
   .catch(next);
 
 const getUser = (req, res, next) => User.findById(req.params._id)
-  .orFail(new Error('Юзер по заданному ID отсутствует в БД.'))
+  .orFail(new NotFoundError('Юзер по заданному ID отсутствует в БД.')) // смотрела туториал Вашего коллеги на ютубе касательно orFail(),но,
+  // видимо, не до конца уловила суть -  Ваше объяснение внесло ясность. Спасибо!
   .then((user) => res.status(200).send(user))
   .catch((err) => {
-    if (err.message === 'Юзер по заданному ID отсутствует в БД.') throw new NotFoundError('Юзер по заданному ID отсутствует в БД.');
-  })
-  .catch((err) => {
     if (err.name === 'CastError') {
-      throw new DataError('Неверный запрос или данные.');
+      next(new DataError('Неверный запрос или данные.'));
     } else {
       next(err);
     }
-  })
-  .catch(next);
+  });
 
 const createUser = (req, res, next) => {
   const {
@@ -44,14 +41,13 @@ const createUser = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        throw new DataError('Неверный запрос или данные.');
+        next(new DataError('Неверный запрос или данные.'));
       } else if (err.name === 'MongoError' && err.code === 11000) {
-        throw new ConflictError('Данный почтовый ящик уже используется.');
+        next(new ConflictError('Данный почтовый ящик уже используется.'));
       } else {
         next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 const updateUser = (req, res, next) => {
@@ -64,9 +60,13 @@ const updateUser = (req, res, next) => {
       }
       return res.status(200).send(user);
     })
-    .catch(
-      next(new DataError('Неверный запрос или данные.')),
-    );
+    .catch((err) => {
+      if (err.name === 'ValidationError' || err.name === 'CastError') {
+        next(new DataError('Неверный запрос или данные.'));
+      } else {
+        next(err);
+      }
+    });
 };
 
 const updateAvatar = (req, res, next) => {
@@ -81,13 +81,12 @@ const updateAvatar = (req, res, next) => {
       return res.status(200).send(user);
     })
     .catch((err) => {
-      if (err.name === 'ValidationError') {
-        throw new DataError('Данные внесены некорректно.');
+      if (err.name === 'CastError' || err.name === 'ValidationError') {
+        next(new DataError('Данные внесены некорректно или запрос неверный.'));
       } else {
         next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 const login = (req, res, next) => {
@@ -110,20 +109,17 @@ const login = (req, res, next) => {
 };
 
 const getCurrentUser = (req, res, next) => User.findById(req.user._id)
+  .orFail(new NotFoundError('Юзер по заданному ID отсутствует в БД.'))
   .then((user) => {
-    if (!user) {
-      throw new NotFoundError('Юзер по заданному ID отсутствует в БД.');
-    }
     res.send({ data: user });
   })
   .catch((err) => {
     if (err.name === 'CastError') {
-      throw new DataError('Данные внесены некорректно.');
+      next(new DataError('Данные внесены некорректно.'));
     } else {
       next(err);
     }
-  })
-  .catch(next);
+  });
 
 module.exports = {
   getUsers, getUser, createUser, updateUser, updateAvatar, login, getCurrentUser,

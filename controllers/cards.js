@@ -23,7 +23,7 @@ const createCard = (req, res, next) => {
     })
     .catch((err) => {
       if (err.name === 'ValidationError') {
-        throw new DataError('Данные карточки не валидны.');
+        next(DataError('Данные карточки не валидны.'));
       } else {
         next(err);
       }
@@ -33,11 +33,9 @@ const createCard = (req, res, next) => {
 const deleteCard = (req, res, next) => {
   const { _id } = req.params;
   Card.findById(_id)
-    .orFail(new Error('CastError'))
+    .orFail(() => new NotFoundError('Карточка не найдена'))
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Карточка отсутствует в БД.');
-      } else if (JSON.stringify(req.user._id) === JSON.stringify(card.owner)) {
+      if (JSON.stringify(req.user._id) === JSON.stringify(card.owner)) {
         Card.findByIdAndRemove(_id)
           .then((result) => {
             res.send(result);
@@ -46,13 +44,7 @@ const deleteCard = (req, res, next) => {
         throw new AccessDeniedError('Вы не обладаете достаточными правами для удаления карточки.');
       }
     })
-    .catch((err) => {
-      if (err.message === 'CastError') {
-        throw new DataError('Неверные данные.');
-      } else {
-        next(err);
-      }
-    });
+    .catch(next);
 };
 
 const likeCard = (req, res, next) => {
@@ -62,16 +54,13 @@ const likeCard = (req, res, next) => {
       $addToSet: { likes: req.user._id },
     }, { new: true },
   )
-    .orFail(new Error('NotFound'))
+    .orFail(() => new NotFoundError('Карточка не найдена'))
     .then((card) => {
       res.send(card);
     })
     .catch((err) => {
-      if (err.message === 'NotFound') throw new NotFoundError('Данные карточки не валидны.');
-    })
-    .catch((err) => {
       if (err.name === 'CastError') {
-        throw new DataError('Данные карточки не валидны.');
+        next(new DataError('Данные карточки не валидны.'));
       } else {
         next(err);
       }
@@ -87,16 +76,13 @@ const dislikeCard = (req, res, next) => {
     },
     { new: true },
   )
-    .orFail(new Error('NotFound'))
+    .orFail(() => new NotFoundError('Карточка не найдена'))
     .then((card) => {
       res.send(card);
     })
     .catch((err) => {
-      if (err.message === 'NotFound') throw new NotFoundError('Карточка не найдена.');
-    })
-    .catch((err) => {
       if (err.message === 'CastError') {
-        throw new DataError('Пенредаваемые данныые не валидны.');
+        next(new DataError('Пенредаваемые данныые не валидны.'));
       } else {
         next(err);
       }
